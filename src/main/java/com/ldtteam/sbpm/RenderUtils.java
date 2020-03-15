@@ -42,8 +42,8 @@ public class RenderUtils
 
     public static BufferBuilder createAndBeginBuffer(final RenderType renderType)
     {
-        final BufferBuilder bufferBuilder = new BufferBuilder(RenderType.getLines().getBufferSize());
-        bufferBuilder.begin(RenderType.getLines().getDrawMode(), RenderType.getLines().getVertexFormat());
+        final BufferBuilder bufferBuilder = new BufferBuilder(renderType.getBufferSize());
+        bufferBuilder.begin(renderType.getDrawMode(), renderType.getVertexFormat());
         return bufferBuilder;
     }
 

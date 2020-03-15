@@ -23,6 +23,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
 import net.minecraft.client.renderer.texture.AtlasTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.crash.ReportedException;
 import net.minecraft.entity.Entity;
@@ -146,7 +147,7 @@ public class StructureDisplayer
         final Random random = new Random();
         final MatrixStack matrixStack = new MatrixStack();
         final List<BlockInfo> blocks = Template
-            .processBlockInfos(template, null, pos, placementSettings, placementSettings.func_227459_a_(template.blocks, pos));
+            .processBlockInfos(template, null, BlockPos.ZERO, placementSettings, placementSettings.func_227459_a_(template.blocks, pos));
 
         renderBuffers = new RenderBuffers();
         FakeWorld.INSTANCE.setBlocks(blocks);
@@ -158,7 +159,7 @@ public class StructureDisplayer
                 try
                 {
                     final BlockState state = blockInfo.state.mirror(placementSettings.getMirror()).rotate(placementSettings.getRotation());
-                    final BlockPos blockPos = blockInfo.pos.subtract(pos);
+                    final BlockPos blockPos = blockInfo.pos;
                     final IFluidState fluidState = state.getFluidState();
 
                     matrixStack.push();
@@ -221,11 +222,15 @@ public class StructureDisplayer
                 final TileEntity tileEntity = TileEntity.create(bi.nbt);
                 tileEntity.mirror(placementSettings.getMirror());
                 tileEntity.rotate(placementSettings.getRotation());
+                tileEntity.setWorldAndPos(FakeWorld.INSTANCE, tileEntity.getPos());
                 final BlockPos tePos = tileEntity.getPos();
                 matrixStack.push();
                 matrixStack.translate(tePos.getX(), tePos.getY(), tePos.getZ());
-                TileEntityRendererDispatcher.instance.getRenderer(tileEntity)
-                    .render(tileEntity, 0.0f, matrixStack, renderBuffers, 15728880, OverlayTexture.NO_OVERLAY);
+                final TileEntityRenderer<TileEntity> renderer = TileEntityRendererDispatcher.instance.getRenderer(tileEntity);
+                if (renderer != null)
+                {
+                    renderer.render(tileEntity, 0.0f, matrixStack, renderBuffers, 15728880, OverlayTexture.NO_OVERLAY);
+                }
                 matrixStack.pop();
             }
         });
