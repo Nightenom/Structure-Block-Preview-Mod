@@ -29,7 +29,7 @@ credits="Thanks for this example mod goes to Java" #optional
 authors="Nightenom" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Adds ability to preview structures in structure blocks
+Adds ability to preview templates in structure blocks
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.sbpm]] #optional

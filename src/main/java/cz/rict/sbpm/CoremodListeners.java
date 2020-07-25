@@ -1,5 +1,6 @@
-package com.ldtteam.sbpm;
+package cz.rict.sbpm;
 
+import cz.rict.sbpm.render.StructureDisplayer;
 import net.minecraft.state.properties.StructureMode;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;

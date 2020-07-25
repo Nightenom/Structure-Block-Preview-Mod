@@ -1,4 +1,4 @@
-package com.ldtteam.sbpm;
+package cz.rict.sbpm.render;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -97,7 +97,13 @@ public class FakeWorld extends World
     @Override
     public TileEntity getTileEntity(BlockPos pos)
     {
-        return blocks.containsKey(pos) && blocks.get(pos).nbt != null ? TileEntity.create(blocks.get(pos).nbt) : null;
+        if (blocks.containsKey(pos) && blocks.get(pos).nbt != null)
+        {
+            final TileEntity te = TileEntity.create(blocks.get(pos).nbt);
+            te.setWorldAndPos(this, pos);
+            return te;
+        }
+        return null;
     }
 
     @Override
@@ -437,7 +443,7 @@ public class FakeWorld extends World
     @Override
     public CrashReportCategory fillCrashReport(final CrashReport report)
     {
-        final CrashReportCategory crashreportcategory = report.makeCategoryDepth("Structurize Rendering Wrapper", 1);
+        final CrashReportCategory crashreportcategory = report.makeCategoryDepth("sbpm Rendering Wrapper", 1);
         crashreportcategory.addDetail("Rendered data",
             () -> {
                 // TODO Auto-generated method stub
@@ -612,7 +618,7 @@ public class FakeWorld extends World
     public String getProviderName()
     {
         // Noop
-        return "Structurize Rendering Wrapper";
+        return "sbpm Rendering Wrapper";
     }
 
     @Override

@@ -16,7 +16,7 @@ function initializeCoreMod() {
                 var newInstructions = new InsnList();
                 newInstructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
                 newInstructions.add(ASMAPI.buildMethodCall(
-                    "com/ldtteam/sbpm/CoremodListeners",
+                    "cz/rict/sbpm/CoremodListeners",
                     "sbteNextMode",
                     "(Lnet/minecraft/state/properties/StructureMode;)V",
                     ASMAPI.MethodType.STATIC
@@ -39,7 +39,7 @@ function initializeCoreMod() {
 
                 var newInstructions = new InsnList();
                 newInstructions.add(ASMAPI.buildMethodCall(
-                    "com/ldtteam/sbpm/CoremodListeners",
+                    "cz/rict/sbpm/CoremodListeners",
                     "essDonePressed",
                     "()V",
                     ASMAPI.MethodType.STATIC

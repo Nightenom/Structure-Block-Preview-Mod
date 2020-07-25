@@ -1,7 +1,11 @@
-package com.ldtteam.sbpm;
+package cz.rict.sbpm.render;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -14,14 +18,9 @@ import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.EditStructureScreen;
-import net.minecraft.client.renderer.ActiveRenderInfo;
-import net.minecraft.client.renderer.Atlases;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.client.renderer.texture.AtlasTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
@@ -42,7 +41,6 @@ import net.minecraft.util.datafix.DefaultTypeReferences;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
 import net.minecraft.world.gen.feature.template.PlacementSettings;
 import net.minecraft.world.gen.feature.template.Template;
 import net.minecraft.world.gen.feature.template.Template.BlockInfo;
@@ -52,7 +50,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class StructureDisplayer
 {
-    private static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
 
     private static BlockPos pos;
     private static String latestValidStructure = "";
@@ -77,67 +75,106 @@ public class StructureDisplayer
 
             if (newMode == StructureMode.LOAD)
             {
-                final Template template;
-                final String structurePath;
-                pos = new BlockPos(Integer.parseInt(screen.posXEdit.getText()),
-                    Integer.parseInt(screen.posYEdit.getText()),
-                    Integer.parseInt(screen.posZEdit.getText())).add(screen.tileStructure.getPos());
                 final PlacementSettings newPlacementSettings = (new PlacementSettings()).setMirror(screen.tileStructure.getMirror())
                     .setRotation(screen.tileStructure.getRotation())
                     .setIgnoreEntities(screen.tileStructure.ignoresEntities())
                     .setChunk(null);
 
-                try
-                {
-                    ResourceLocation structureRL = new ResourceLocation(screen.nameEdit.getText());
-                    structureRL = new ResourceLocation(structureRL.getNamespace(), "structures/" + structureRL.getPath() + ".nbt");
-                    structurePath = toDataAbsolutePath(structureRL);
-                }
-                catch (final ResourceLocationException e)
-                {
-                    // unuseable name, dont care about this
-                    return;
-                }
-                try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(structurePath))
-                {
-                    if (is == null)
-                    {
-                        return;
-                    }
-
-                    if (false && structurePath.equals(latestValidStructure) && placementSettings != null
-                        && newPlacementSettings.getRotation() == placementSettings.getRotation()
-                        && newPlacementSettings.getMirror() == placementSettings.getMirror()
-                        && newPlacementSettings.getIgnoreEntities() == placementSettings.getIgnoreEntities())
-                    {
-                        return;
-                    }
-                    latestValidStructure = structurePath;
-                    placementSettings = newPlacementSettings;
-
-                    final CompoundNBT nbt = CompressedStreamTools.readCompressed(is);
-
-                    if (!nbt.contains("DataVersion", 99))
-                    {
-                        nbt.putInt("DataVersion", 500);
-                    }
-                    template = new Template();
-                    template.read(NBTUtil
-                        .update(Minecraft.getInstance().getDataFixer(), DefaultTypeReferences.STRUCTURE, nbt, nbt.getInt("DataVersion")));
-
-                    compileTemplate(template);
-                }
-                catch (final IOException e)
-                {
-                    // cannot open file
-                    return;
-                }
+                loadTemplate(
+                    new BlockPos(Integer.parseInt(screen.posXEdit.getText()),
+                        Integer.parseInt(screen.posYEdit.getText()),
+                        Integer.parseInt(screen.posZEdit.getText())).add(screen.tileStructure.getPos()),
+                    screen.nameEdit.getText(),
+                    newPlacementSettings);
             }
             else
             {
-                FakeWorld.INSTANCE.setBlocks(null);
-                renderBuffers = null;
+                clear();
             }
+        }
+    }
+
+    public static void loadTemplate(final BlockPos where, final String templateRL, final PlacementSettings newPlacementSettings)
+    {
+        if (templateRL.equals("empty"))
+        {
+            clear();
+            return;
+        }
+
+        pos = where;
+        InputStream is0 = null;
+        String structurePath = "";
+        Path discPath = null;
+        try
+        {
+            discPath = Paths.get(templateRL);
+        }
+        catch (final InvalidPathException e)
+        {
+            // nothing
+        }
+        if (discPath != null && Files.exists(discPath))
+        {
+            try
+            {
+                is0 = Files.newInputStream(discPath);
+                structurePath = templateRL;
+            }
+            catch (final IOException e)
+            {
+            }
+        }
+        else
+        {
+            try
+            {
+                ResourceLocation structureRL = new ResourceLocation(templateRL);
+                structureRL = new ResourceLocation(structureRL.getNamespace(), "structures/" + structureRL.getPath() + ".nbt");
+                structurePath = toDataAbsolutePath(structureRL);
+            }
+            catch (final ResourceLocationException e)
+            {
+                clear();
+                return;
+            }
+            is0 = StructureDisplayer.class.getResourceAsStream(structurePath);
+            is0 = is0 == null ? Thread.currentThread().getContextClassLoader().getResourceAsStream(structurePath) : is0;
+            is0 = is0 == null ? System.class.getResourceAsStream(structurePath) : is0;
+        }
+        if (is0 == null)
+        {
+            clear();
+            return;
+        }
+        try (InputStream is = is0)
+        {
+            if (structurePath.equals(latestValidStructure) && placementSettings != null
+                && newPlacementSettings.getRotation() == placementSettings.getRotation()
+                && newPlacementSettings.getMirror() == placementSettings.getMirror()
+                && newPlacementSettings.getIgnoreEntities() == placementSettings.getIgnoreEntities() && renderBuffers != null)
+            {
+                return;
+            }
+            latestValidStructure = structurePath;
+            placementSettings = newPlacementSettings;
+
+            final CompoundNBT nbt = CompressedStreamTools.readCompressed(is);
+
+            if (!nbt.contains("DataVersion", 99))
+            {
+                nbt.putInt("DataVersion", 500);
+            }
+            final Template template = new Template();
+            template.read(
+                NBTUtil.update(Minecraft.getInstance().getDataFixer(), DefaultTypeReferences.STRUCTURE, nbt, nbt.getInt("DataVersion")));
+
+            compileTemplate(template);
+        }
+        catch (final IOException e)
+        {
+            clear();
+            return;
         }
     }
 
@@ -237,6 +274,12 @@ public class StructureDisplayer
 
         renderBuffers.finish();
         renderBuffers.sortUsingWorldOrder();
+    }
+
+    private static void clear()
+    {
+        FakeWorld.INSTANCE.setBlocks(null);
+        renderBuffers = null;
     }
 
     @SubscribeEvent

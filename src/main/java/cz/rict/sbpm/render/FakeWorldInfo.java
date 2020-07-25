@@ -1,4 +1,4 @@
-package com.ldtteam.sbpm;
+package cz.rict.sbpm.render;
 
 import net.minecraft.world.storage.WorldInfo;
 
